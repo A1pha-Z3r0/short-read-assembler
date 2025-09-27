@@ -1,6 +1,8 @@
 # environments
 venv
+
 # local
+.DS*
 
 # data
 *.txt
