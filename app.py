@@ -26,6 +26,8 @@ def main():
                             out_file_path = args.output,
                             k = args.kmer)
 
+  
+
     print(len(contigs))
 
 if __name__ == "__main__":

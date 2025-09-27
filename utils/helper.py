@@ -11,6 +11,7 @@ from Bio.SeqRecord import SeqRecord
 
 import networkx as nx
 from utils.dbg import DBG
+from visuals.coverage import coverage_vector_unique, save_coverage_hist
 
 def merge_by_unique_k_overlap(seq_list : list, k : int):
     """
@@ -106,6 +107,7 @@ def read_assembly(inp_file_path: str,
                 k: int):
     records = []
     total_counts = {}
+    reads = []
     
     # Detect FASTA by attempting to parse a first record
     try:
@@ -117,12 +119,14 @@ def read_assembly(inp_file_path: str,
 
     if is_fasta:
         for rec in SeqIO.parse(inp_file_path, "fasta-blast"):
+            reads.append(rec.seq)
             kmer_counts_from_sequence(t_counts = total_counts, seq = rec.seq, k=k)
 
     else:
         with open(inp_file_path, "r" , encoding="UTF-8") as file:
             for _, line in enumerate(file):
                 seq = line.strip()
+                reads.append(seq)
                 if not seq:
                     continue
                 kmer_counts_from_sequence(t_counts = total_counts, seq = seq, k=k)
@@ -157,12 +161,21 @@ def read_assembly(inp_file_path: str,
         if not contigs:
             raise ValueError("Assembly produced no contigs")
 
-        contigs.sort(key=len, reverse=True)
+        for i, c in enumerate(contigs, start=1):
+            cov = coverage_vector_unique(c, reads, k)
+            con_len = len(c)
+            min_cov = min(cov) if cov else 0
+            max_cov = max(cov) if cov else 0
+            mean_cov = sum(cov)/len(cov) if cov else 0
+            print(f"Contig{i} len={con_len}  coverage: min={min_cov}, "
+                f"max={max_cov}, mean={ mean_cov:.2f}")
 
-        records = [
-            SeqRecord(Seq(c), id=f"Contig{i+1}", description=f"len={len(c)};k={k}")
-            for i, c in enumerate(contigs)
-        ]
+            records.append(SeqRecord(Seq(c), id=f"Contig{i}",
+                     description=(f"len={con_len};k={k};cov_min={min_cov};cov_max={max_cov};cov_mean={mean_cov:.2f}")))
+
+            png = save_coverage_hist(f"Contig{i}", cov)
+            print("Saved hist:", png)
+            
         SeqIO.write(records, out_file_path, "fasta")
 
     return contigs
