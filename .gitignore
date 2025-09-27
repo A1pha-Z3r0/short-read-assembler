@@ -1,8 +1,10 @@
 # environments
 venv
+coverage_plots
 
 # local
 .DS*
+*.png
 
 # data
 *.txt
